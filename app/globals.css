@@ -1,26 +1,157 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@source "../app/**/*.js";
+@source "../components/**/*.js";
+@source "../lib/**/*.js";
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* Premium Palette - Inter/SF Pro optimized */
+    --background: 210 40% 98%;
+    /* Porcelain White */
+    --foreground: 222 47% 11%;
+    /* Deep Navy */
+
+    --primary: 221 83% 53%;
+    /* Electric Blue - leaner */
+    --primary-foreground: 210 40% 98%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222 47% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222 47% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221 83% 53%;
+
+    --radius: 1rem;
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    /* Leaner, more subtle gradient mesh for a premium feel */
+    background-image:
+      radial-gradient(at 0% 0%, hsla(250, 100%, 98%, 1) 0, transparent 55%),
+      radial-gradient(at 100% 0%, hsla(210, 100%, 97%, 1) 0, transparent 55%),
+      radial-gradient(at 100% 100%, hsla(250, 100%, 99%, 1) 0, transparent 55%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+
+  /* Glassmorphism 2.0 - Cleaner, Lighter, crisper borders */
+  .glass-panel {
+    @apply bg-white/70 backdrop-blur-xl border border-white/50 shadow-xl shadow-slate-200/40 rounded-3xl;
+    /* Fallback for non-supporting browsers */
+    background-color: rgba(255, 255, 255, 0.75);
+  }
+
+  .glass-card {
+    @apply bg-white/80 backdrop-blur-md border border-white/60 shadow-sm hover:shadow-lg transition-all duration-300 rounded-2xl;
+  }
+
+  /* Premium Buttons */
+  .btn-primary {
+    @apply bg-slate-900 text-white font-semibold py-2 px-4 rounded-xl hover:bg-black hover:shadow-lg hover:shadow-slate-500/20 active:scale-95 transition-all duration-200 flex items-center justify-center gap-2;
+  }
+
+  .btn-secondary {
+    @apply bg-white border border-slate-200 text-slate-700 font-semibold py-2 px-4 rounded-xl hover:bg-slate-50 hover:border-slate-300 active:scale-95 transition-all duration-200 flex items-center justify-center gap-2;
+  }
+
+  /* Modern Inputs */
+  .input-field {
+    @apply w-full px-4 py-3 bg-white/50 border border-slate-200 rounded-xl outline-none text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all duration-200;
+  }
+
+  /* Typography Utilities */
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-linear-to-r from-slate-900 to-slate-600;
+  }
+
+  .text-gradient-primary {
+    @apply bg-clip-text text-transparent bg-linear-to-r from-blue-600 to-violet-600;
+  }
+}
+
+@keyframes blob {
+  0% {
+    transform: translate(0px, 0px) scale(1);
+  }
+
+  33% {
+    transform: translate(30px, -50px) scale(1.1);
+  }
+
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+}
+
+.animate-blob {
+  animation: blob 7s infinite;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}
+
+/* Scrollbar hide utility for mobile horizontal scrolls */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Mobile-first responsive utilities */
+@media (max-width: 640px) {
+  .glass-panel {
+    @apply rounded-2xl;
+  }
+
+  .glass-card {
+    @apply rounded-xl;
+  }
+}
+
+/* Safe area padding for mobile devices with notch */
+@supports (padding: max(0px)) {
+  .safe-area-inset {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
 }
