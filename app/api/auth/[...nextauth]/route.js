@@ -60,6 +60,7 @@ export const authOptions = {
           odUserId: user.userId, // Custom userId like ME001
           email: user.email,
           name: user.name,
+          role: user.role,
         };
       },
     }),
@@ -103,19 +104,21 @@ export const authOptions = {
         token.odUserId = user.odUserId;
         token.onboardingCompleted = user.onboardingCompleted;
         token.salaryDate = user.salaryDate;
+        token.role = user.role;
       }
 
       // Ensure we have the latest data from DB
       if (token.email) {
          const dbUser = await prisma.user.findUnique({ 
             where: { email: token.email },
-            select: { id: true, userId: true, onboardingCompleted: true, salaryDate: true }
+            select: { id: true, userId: true, onboardingCompleted: true, salaryDate: true, role: true }
          });
          if (dbUser) {
             token.odId = dbUser.id; // Int database ID
             token.odUserId = dbUser.userId; // Custom userId ME001
             token.onboardingCompleted = dbUser.onboardingCompleted;
             token.salaryDate = dbUser.salaryDate;
+            token.role = dbUser.role;
          }
       }
       return token;
@@ -126,6 +129,7 @@ export const authOptions = {
         session.user.odUserId = token.odUserId; // Custom userId ME001
         session.user.onboardingCompleted = token.onboardingCompleted;
         session.user.salaryDate = token.salaryDate;
+        session.user.role = token.role;
       }
       return session;
     },
