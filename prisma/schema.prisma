@@ -38,6 +38,7 @@ model User {
   investments   Investment[]
   salaryDate    Int?      // 1-31
   onboardingCompleted Boolean @default(false)
+  isActive      Boolean   @default(true)
 }
 
 model Category {

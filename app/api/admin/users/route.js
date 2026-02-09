@@ -31,6 +31,7 @@ export async function GET(req) {
         role: true,
         createdAt: true,
         onboardingCompleted: true,
+        isActive: true,
       }
     });
 
@@ -92,8 +93,29 @@ export async function DELETE(req) {
         });
 
         return NextResponse.json({ message: "User deleted" });
-
     } catch (error) {
         return NextResponse.json({ message: "Failed to delete user" }, { status: 500 });
+    }
+}
+
+export async function PATCH(req) {
+    if (!await checkAdmin()) return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+
+    try {
+        const body = await req.json();
+        const { id, isActive } = body;
+
+        if (!id) return NextResponse.json({ message: "User ID required" }, { status: 400 });
+
+        const updatedUser = await prisma.user.update({
+            where: { id: parseInt(id) },
+            data: { isActive },
+            select: { id: true, isActive: true, email: true }
+        });
+
+        return NextResponse.json(updatedUser);
+    } catch (error) {
+        console.error("Update User Error:", error);
+        return NextResponse.json({ message: "Failed to update user" }, { status: 500 });
     }
 }

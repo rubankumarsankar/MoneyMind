@@ -55,6 +55,10 @@ export const authOptions = {
             throw new Error("Invalid password");
           }
 
+          if (!user.isActive) {
+            throw new Error("Account is inactive. Please contact admin.");
+          }
+
           return {
             id: String(user.id),
             odId: user.id,
@@ -62,6 +66,7 @@ export const authOptions = {
             email: user.email,
             name: user.name,
             role: user.role,
+            isActive: user.isActive,
           };
         } catch (error) {
           console.error("Login Authorization Error:", error);
@@ -93,8 +98,14 @@ export const authOptions = {
               email: profile.email,
               name: profile.name,
               password: "",
+              isActive: true,
             },
           });
+        } else {
+          // Check if existing user is active
+          if (!existingUser.isActive) {
+            return false; // Blocks sign in
+          }
         }
       }
       return true;
@@ -110,13 +121,14 @@ export const authOptions = {
         token.onboardingCompleted = user.onboardingCompleted;
         token.salaryDate = user.salaryDate;
         token.role = user.role;
+        token.isActive = user.isActive;
       }
 
       // Ensure we have the latest data from DB
       if (token.email) {
          const dbUser = await prisma.user.findUnique({ 
             where: { email: token.email },
-            select: { id: true, userId: true, onboardingCompleted: true, salaryDate: true, role: true }
+            select: { id: true, userId: true, onboardingCompleted: true, salaryDate: true, role: true, isActive: true }
          });
          if (dbUser) {
             token.odId = dbUser.id; // Int database ID
@@ -124,6 +136,7 @@ export const authOptions = {
             token.onboardingCompleted = dbUser.onboardingCompleted;
             token.salaryDate = dbUser.salaryDate;
             token.role = dbUser.role;
+            token.isActive = dbUser.isActive;
          }
       }
       return token;
@@ -135,6 +148,7 @@ export const authOptions = {
         session.user.onboardingCompleted = token.onboardingCompleted;
         session.user.salaryDate = token.salaryDate;
         session.user.role = token.role;
+        session.user.isActive = token.isActive;
       }
       return session;
     },

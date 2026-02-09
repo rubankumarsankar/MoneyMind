@@ -51,6 +51,25 @@ export default function UsersPage() {
     }
   };
 
+  const handleStatusToggle = async (userId, currentStatus) => {
+      try {
+          const res = await fetch('/api/admin/users', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id: userId, isActive: !currentStatus })
+          });
+
+          if (!res.ok) throw new Error('Failed to update status');
+
+          setUsers(users.map(u => 
+              u.id === userId ? { ...u, isActive: !currentStatus } : u
+          ));
+          showSuccess('Updated', `User is now ${!currentStatus ? 'Active' : 'Inactive'}`);
+      } catch (error) {
+          showError('Error', 'Failed to update user status');
+      }
+  };
+
   const handleCreate = async (e) => {
       e.preventDefault();
       try {
@@ -119,6 +138,7 @@ export default function UsersPage() {
                      <th className="p-4 font-semibold text-slate-600">User</th>
                      <th className="p-4 font-semibold text-slate-600">Role</th>
                      <th className="p-4 font-semibold text-slate-600">Joined</th>
+                     <th className="p-4 font-semibold text-slate-600">Status</th>
                      <th className="p-4 font-semibold text-slate-600 text-right">Actions</th>
                   </tr>
                </thead>
@@ -150,6 +170,18 @@ export default function UsersPage() {
                            </td>
                            <td className="p-4 text-slate-500 text-sm">
                               {dayjs(user.createdAt).format('MMM D, YYYY')}
+                           </td>
+                           <td className="p-4">
+                              <button 
+                                onClick={() => handleStatusToggle(user.id, user.isActive)}
+                                className={`px-2 py-1 rounded-full text-xs font-bold border ${
+                                  user.isActive 
+                                    ? 'bg-green-50 text-green-600 border-green-200 hover:bg-green-100' 
+                                    : 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'
+                                } transition-colors`}
+                              >
+                                {user.isActive ? 'Active' : 'Inactive'}
+                              </button>
                            </td>
                            <td className="p-4 text-right">
                               <button 
