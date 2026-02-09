@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -12,188 +9,186 @@ datasource db {
 }
 
 model User {
-  id            Int       @id @default(autoincrement())
-  userId        String    @unique // Custom ID like ME001
-  email         String    @unique
-  password      String?
-  name          String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  role          String    @default("USER") // USER, ADMIN
-  
-  // Relations
-  financialSnapshots FinancialSnapshot[]
-  incomes       Income[]
-  fixedExpenses FixedExpense[]
-  dailyExpenses DailyExpense[]
-  emis          EMI[]
-  creditCards   CreditCard[]
-  borrows       Borrow[]
-  accounts      Account[]
-  savings       Saving[]
-  notifications Notification[]
-  categories    Category[]
-  budgets       Budget[]
-  recurringExpenses RecurringExpense[]
-  investments   Investment[]
-  salaryDate    Int?      // 1-31
-  onboardingCompleted Boolean @default(false)
-  isActive      Boolean   @default(true)
+  id                  Int                 @id @default(autoincrement())
+  userId              String              @unique
+  email               String              @unique
+  password            String?
+  name                String?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  role                String              @default("USER")
+  salaryDate          Int?
+  onboardingCompleted Boolean             @default(false)
+  isActive            Boolean             @default(true)
+  accounts            Account[]
+  borrows             Borrow[]
+  budgets             Budget[]
+  categories          Category[]
+  creditCards         CreditCard[]
+  dailyExpenses       DailyExpense[]
+  emis                EMI[]
+  financialSnapshots  FinancialSnapshot[]
+  fixedExpenses       FixedExpense[]
+  incomes             Income[]
+  investments         Investment[]
+  notifications       Notification[]
+  recurringExpenses   RecurringExpense[]
+  savings             Saving[]
 }
 
 model Category {
   id        Int      @id @default(autoincrement())
   name      String
-  type      String   // EXPENSE or INCOME
+  type      String
   icon      String?
   color     String?
   userId    Int
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([userId, name, type])
 }
 
 model Income {
   id        Int      @id @default(autoincrement())
   amount    Float
-  source    String   // e.g., Salary, Freelance
-  date      DateTime @default(now()) // or specific month reference
+  source    String
+  date      DateTime @default(now())
   accountId Int?
-  account   Account? @relation(fields: [accountId], references: [id])
   userId    Int
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  account   Account? @relation(fields: [accountId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model FixedExpense {
-  id          Int      @id @default(autoincrement())
-  title       String   // e.g., Rent, Internet
-  name        String?  // Alias for title (backwards compatibility)
-  category    String?  // RENT, UTILITY, SUBSCRIPTION, INSURANCE, EMI, OTHER
-  amount      Float
-  dayOfMonth  Int      // 1-31
-  accountId   Int?     // Optional: Account to auto-debit from
-  account     Account? @relation(fields: [accountId], references: [id])
-  userId      Int
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         Int      @id @default(autoincrement())
+  title      String
+  name       String?
+  category   String?
+  amount     Float
+  dayOfMonth Int
+  accountId  Int?
+  userId     Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  account    Account? @relation(fields: [accountId], references: [id])
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model DailyExpense {
-  id            Int         @id @default(autoincrement())
-  category      String      // Food, Travel, etc.
+  id            Int          @id @default(autoincrement())
+  category      String
   amount        Float
-  date          DateTime    @default(now())
+  date          DateTime     @default(now())
   note          String?
-  isAnomaly     Boolean     @default(false)
-  paymentMethod String      @default("CASH") // CASH, UPI, CREDIT_CARD
+  isAnomaly     Boolean      @default(false)
+  paymentMethod String       @default("CASH")
   accountId     Int?
-  account       Account?    @relation(fields: [accountId], references: [id])
   creditCardId  Int?
-  creditCard    CreditCard? @relation(fields: [creditCardId], references: [id])
   userId        Int
-  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  creditSpend   CreditSpend? // Relation to track if this created a CC spend
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  creditSpend   CreditSpend?
+  account       Account?     @relation(fields: [accountId], references: [id])
+  creditCard    CreditCard?  @relation(fields: [creditCardId], references: [id])
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model EMI {
   id            Int      @id @default(autoincrement())
-  name          String   // e.g., Home Loan
+  name          String
   totalAmount   Float
-  interestRate  Float?   // Annual Interest Rate %
+  interestRate  Float?
   monthlyAmount Float
   totalMonths   Int
   paidMonths    Int      @default(0)
   startDate     DateTime
   userId        Int
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model CreditCard {
-  id            Int           @id @default(autoincrement())
-  name          String        // e.g., HDFC Regalia
+  id            Int            @id @default(autoincrement())
+  name          String
   limit         Float
-  billingDay    Int           // 1-31
+  billingDay    Int
   userId        Int
-  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   spends        CreditSpend[]
   dailyExpenses DailyExpense[]
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
 }
 
 model CreditSpend {
   id             Int           @id @default(autoincrement())
   amount         Float
   description    String
-  type           String        @default("SPEND") // SPEND or PAYMENT
+  type           String        @default("SPEND")
   date           DateTime      @default(now())
   cardId         Int
-  creditCard     CreditCard    @relation(fields: [cardId], references: [id], onDelete: Cascade)
   dailyExpenseId Int?          @unique
-  dailyExpense   DailyExpense? @relation(fields: [dailyExpenseId], references: [id])
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
+  creditCard     CreditCard    @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  dailyExpense   DailyExpense? @relation(fields: [dailyExpenseId], references: [id])
 }
 
 model Borrow {
-  id          Int      @id @default(autoincrement())
-  type        String   // "GAVE" or "TOOK"
-  personName  String
-  amount      Float
-  status      String   // "PENDING", "PAID"
-  userId      Int
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         Int      @id @default(autoincrement())
+  type       String
+  personName String
+  amount     Float
+  status     String
+  userId     Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Account {
   id            Int            @id @default(autoincrement())
-  name          String         // e.g., HDFC Bank, PayTM
-  type          String         // BANK, CASH, UPI, WALLET
-  purpose       String         @default("GENERAL") // SALARY, SAVINGS, SPENDING, GENERAL
+  name          String
+  type          String
+  purpose       String         @default("GENERAL")
   balance       Float
   userId        Int
-  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  dailyExpenses DailyExpense[]
-  incomes       Income[]
-  fixedExpenses FixedExpense[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dailyExpenses DailyExpense[]
+  fixedExpenses FixedExpense[]
+  incomes       Income[]
 }
 
 model Saving {
   id            Int       @id @default(autoincrement())
-  name          String    // e.g., Emergency Fund
+  name          String
   targetAmount  Float
   currentAmount Float
-  targetDate    DateTime? // Optional target date
+  targetDate    DateTime?
   userId        Int
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model FinancialSnapshot {
   id           Int      @id @default(autoincrement())
   userId       Int
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  month        String   // Format: "YYYY-MM"
+  month        String
   totalIncome  Float
   totalExpense Float
   savings      Float
   healthScore  Int
   riskLevel    String
   createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model PasswordReset {
@@ -207,74 +202,69 @@ model PasswordReset {
 model Notification {
   id         Int      @id @default(autoincrement())
   userId     Int
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type       String   // REMINDER, ALERT, TIP, SUCCESS, INFO
+  type       String
   title      String
   message    String
   read       Boolean  @default(false)
   actionLink String?
   createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Budget {
   id           Int      @id @default(autoincrement())
   userId       Int
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  category     String   // Category name to match against
+  category     String
   monthlyLimit Float
-  alertAt      Int      @default(80) // Percentage to trigger alert (e.g., 80%)
+  alertAt      Int      @default(80)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-  
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([userId, category])
 }
 
 model RecurringExpense {
-  id            Int      @id @default(autoincrement())
-  userId        Int
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name          String   // e.g., Netflix, Rent
-  amount        Float
-  frequency     String   // MONTHLY, WEEKLY, YEARLY
-  dayOfMonth    Int?     // 1-31 for monthly
-  nextDue       DateTime
-  reminderDays  Int      @default(3) // Days before to remind
-  category      String?
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  name         String
+  amount       Float
+  frequency    String
+  dayOfMonth   Int?
+  nextDue      DateTime
+  reminderDays Int      @default(3)
+  category     String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Investment {
   id             Int      @id @default(autoincrement())
   userId         Int
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name           String   // SIP, FD, Stocks
-  type           String   // EQUITY, DEBT, HYBRID, FD, GOLD
+  name           String
+  type           String
   investedAmount Float
   currentValue   Float
-  returns        Float?   // Percentage returns (calculated)
-  platform       String?  // Groww, Zerodha, Bank
+  returns        Float?
+  platform       String?
   startDate      DateTime
   notes          String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model SystemSettings {
-  id             Int      @id @default(autoincrement())
-  appName        String   @default("MoneyMind")
-  
-  // SMTP Configuration
-  smtpHost       String?
-  smtpPort       Int?     @default(587)
-  smtpUser       String?
-  smtpPass       String?
-  smtpSecure     Boolean  @default(false)
-  
-  // General Config
-  maintenanceMode Boolean @default(false)
-  allowRegistrations Boolean @default(true)
-  
-  updatedAt      DateTime @updatedAt
+  id                 Int      @id @default(autoincrement())
+  appName            String   @default("MoneyMind")
+  smtpHost           String?
+  smtpPort           Int?     @default(587)
+  smtpUser           String?
+  smtpPass           String?
+  smtpSecure         Boolean  @default(false)
+  maintenanceMode    Boolean  @default(false)
+  allowRegistrations Boolean  @default(true)
+  updatedAt          DateTime @updatedAt
 }
