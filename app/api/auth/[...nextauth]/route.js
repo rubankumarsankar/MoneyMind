@@ -31,37 +31,42 @@ export const authOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error("Invalid credentials");
+        try {
+          if (!credentials?.email || !credentials?.password) {
+            throw new Error("Invalid credentials");
+          }
+
+          const user = await prisma.user.findUnique({
+            where: {
+              email: credentials.email,
+            },
+          });
+
+          if (!user || !user.password) {
+             throw new Error("User not found");
+          }
+
+          const isPasswordCorrect = await bcrypt.compare(
+            credentials.password,
+            user.password
+          );
+
+          if (!isPasswordCorrect) {
+            throw new Error("Invalid password");
+          }
+
+          return {
+            id: String(user.id),
+            odId: user.id,
+            odUserId: user.userId,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+          };
+        } catch (error) {
+          console.error("Login Authorization Error:", error);
+          throw error;
         }
-
-        const user = await prisma.user.findUnique({
-          where: {
-            email: credentials.email,
-          },
-        });
-
-        if (!user || !user.password) {
-           throw new Error("User not found");
-        }
-
-        const isPasswordCorrect = await bcrypt.compare(
-          credentials.password,
-          user.password
-        );
-
-        if (!isPasswordCorrect) {
-          throw new Error("Invalid password");
-        }
-
-        return {
-          id: String(user.id), // NextAuth expects string, convert back in callbacks
-          odId: user.id, // Original database ID (Int)
-          odUserId: user.userId, // Custom userId like ME001
-          email: user.email,
-          name: user.name,
-          role: user.role,
-        };
       },
     }),
   ],
