@@ -49,7 +49,8 @@ export async function POST(req) {
     const systemStatus = {
         currentEnv: process.env.NODE_ENV,
         configuredNextAuthUrl: process.env.NEXTAUTH_URL === nextAuthUrl ? "MATCH" : "MISMATCH",
-        dbConfigured: !!process.env.DATABASE_URL
+        dbConfigured: !!process.env.DATABASE_URL,
+        availableEnvKeys: Object.keys(process.env).filter(key => key.startsWith('NEXT') || key.startsWith('DATA') || key.startsWith('GOOGLE'))
     };
 
     return NextResponse.json({ results, systemStatus });
