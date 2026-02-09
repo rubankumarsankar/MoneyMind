@@ -46,7 +46,17 @@ export async function POST(req) {
     });
 
     // Send email
-    await sendPasswordResetEmail(email, token);
+    const emailSent = await sendPasswordResetEmail(email, token);
+
+    if (!emailSent) {
+      // If email fails, roll back the token creation (optional but good practice)
+      await prisma.passwordReset.delete({ where: { token } });
+      
+      return NextResponse.json(
+        { message: "Failed to send reset email. Please try again later." },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json(
       { message: "If an account exists, a reset link has been sent." },
