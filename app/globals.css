@@ -147,12 +147,13 @@
 .custom-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: #94a3b8 transparent;
-  /* Darker thumb (slate-400) */
 }
 
+/* Custom Scrollbar - Minimal & Functional */
 .custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  /* Slightly thinner for elegance, but visible */
+  width: 5px;
+  /* Thin but usable */
+  height: 5px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
@@ -160,14 +161,29 @@
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: #94a3b8;
-  /* Slate-400 */
+  background-color: #cbd5e1;
+  /* Slate-300 (Subtle) */
   border-radius: 20px;
+  border: 2px solid transparent;
+  background-clip: content-box;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: #64748b;
-  /* Slate-500 */
+  background-color: #94a3b8;
+  /* Slate-400 (Visible on hover) */
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
 }
 
 /* Mobile-first responsive utilities */
@@ -179,6 +195,12 @@
   .glass-card {
     @apply rounded-xl;
   }
+}
+
+/* Mask Image for smooth scroll fade */
+.mask-image-b {
+  mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
 }
 
 /* Safe area padding for mobile devices with notch */
