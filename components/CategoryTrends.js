@@ -24,8 +24,8 @@ export default function CategoryTrends({ trends }) {
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-      <h3 className="font-bold text-slate-700 mb-4">Spending Trends</h3>
+    <div className="glass-panel p-6">
+      <h3 className="font-bold text-slate-800 mb-4 font-heading text-lg">Spending Trends</h3>
 
       <div className="space-y-2 max-h-48 overflow-y-auto">
         {trends.slice(0, 6).map((trend, idx) => (

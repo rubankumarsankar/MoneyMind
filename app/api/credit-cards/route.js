@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "../auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { FinanceEngine } from "@/lib/finance";
 
@@ -78,7 +78,7 @@ export async function PUT(req) {
   try {
     const { id, name, limit, billingDay } = await req.json();
     const updatedCard = await prisma.creditCard.update({
-      where: { id },
+      where: { id: parseInt(id) },
       data: {
         name,
         limit: parseFloat(limit),
@@ -99,7 +99,8 @@ export async function DELETE(req) {
   const id = searchParams.get('id');
 
   try {
-    await prisma.creditCard.delete({ where: { id: id } });
+    if (!id) return NextResponse.json({ message: "ID required" }, { status: 400 });
+    await prisma.creditCard.delete({ where: { id: parseInt(id) } });
     return NextResponse.json({ message: "Deleted" });
   } catch (error) {
     return NextResponse.json({ message: "Error deleting" }, { status: 500 });

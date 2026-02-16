@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { ArrowLeftRight, Check, X } from 'lucide-react';
+import { ArrowLeftRight, Check } from 'lucide-react';
 import { useSession } from "next-auth/react";
 import { showToast, showError } from '@/lib/sweetalert';
 
@@ -29,7 +29,7 @@ export default function BorrowPage() {
       setForm({ ...form, personName: '', amount: '' });
       fetchItems();
       showToast('success', 'Record added!');
-    } catch(e) {
+    } catch {
       showError('Error', 'Failed to add record');
     }
   };
@@ -42,7 +42,7 @@ export default function BorrowPage() {
       });
       fetchItems();
       showToast('success', 'Marked as settled!');
-    } catch(e) {
+    } catch {
       showError('Error', 'Failed to update');
     }
   };

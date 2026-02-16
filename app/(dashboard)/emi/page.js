@@ -73,10 +73,75 @@ export default function EMIPage() {
     }
   };
 
+  const [accounts, setAccounts] = useState([]);
+  const [payModal, setPayModal] = useState({ open: false, emi: null, accountId: '' });
+
+  useEffect(() => {
+    fetch('/api/accounts').then(res => res.json()).then(data => setAccounts(data));
+  }, []);
+
+  const handlePay = async (e) => {
+    e.preventDefault();
+    if (!payModal.accountId) return showError('Error', 'Please select an account');
+    
+    try {
+        const res = await fetch('/api/emi/pay', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                emiId: payModal.emi.id, 
+                accountId: payModal.accountId,
+                date: new Date().toISOString()
+            })
+        });
+
+        if (res.ok) {
+            showToast('success', 'EMI Paid Successfully!');
+            setPayModal({ open: false, emi: null, accountId: '' });
+            fetchEmis();
+        } else {
+            showError('Error', 'Failed to pay EMI');
+        }
+    } catch (e) {
+        showError('Error', 'Payment failed');
+    }
+  };
+
   if (!session) return <div className="p-8">Please log in.</div>;
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 sm:space-y-8 px-1 sm:px-0">
+      
+      {/* Payment Modal */}
+      {payModal.open && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-200">
+                <h3 className="font-bold text-xl text-slate-800 mb-2">Pay EMI: {payModal.emi.name}</h3>
+                <p className="text-slate-500 mb-6">Confirm payment of <span className="font-bold text-slate-900">₹{payModal.emi.monthlyAmount.toLocaleString()}</span></p>
+                
+                <form onSubmit={handlePay}>
+                    <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">Pay From Account</label>
+                    <select 
+                        required 
+                        className="input-field mb-6"
+                        value={payModal.accountId}
+                        onChange={e => setPayModal({ ...payModal, accountId: e.target.value })}
+                    >
+                        <option value="">Select Account</option>
+                        {accounts.map(acc => (
+                            <option key={acc.id} value={acc.id}>{acc.name} (₹{acc.balance.toLocaleString()})</option>
+                        ))}
+                    </select>
+
+                    <div className="flex gap-3">
+                        <button type="button" onClick={() => setPayModal({ open: false, emi: null, accountId: '' })} className="flex-1 py-3 text-slate-600 font-bold hover:bg-slate-100 rounded-xl">Cancel</button>
+                        <button type="submit" className="flex-1 py-3 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 shadow-lg shadow-green-200">Confirm Payment</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
         <div>
            <h1 className="text-2xl sm:text-3xl font-bold bg-clip-text text-transparent bg-linear-to-r from-orange-600 to-amber-500">
@@ -178,9 +243,17 @@ export default function EMIPage() {
 
                return (
                  <div key={emi.id} className={`glass-card p-6 relative group border-l-4 ${isOptimized ? 'border-l-green-500 ring-2 ring-green-500/20' : 'border-l-transparent'}`}>
-                    <button onClick={() => handleDelete(emi.id)} className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500">
-                       <Trash2 size={18} />
-                    </button>
+                    <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                        <button 
+                            onClick={() => setPayModal({ open: true, emi, accountId: '' })}
+                            className="bg-green-100 text-green-700 px-3 py-1 rounded-lg text-xs font-bold hover:bg-green-200"
+                        >
+                            Pay Now
+                        </button>
+                        <button onClick={() => handleDelete(emi.id)} className="text-slate-400 hover:text-red-500 p-1">
+                            <Trash2 size={18} />
+                        </button>
+                    </div>
 
                      <Link href={`/emi/${emi.id}`} className="block">
                         <div className="flex justify-between items-start mb-4">

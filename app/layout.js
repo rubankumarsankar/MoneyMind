@@ -1,5 +1,9 @@
+import { Inter, Outfit } from "next/font/google";
 import AuthProvider from "@/components/AuthProvider";
 import "./globals.css";
+
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
 
 export const metadata = {
   title: "MoneyMind - Personal Finance Manager",
@@ -9,7 +13,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body>
+      <body className={`${inter.variable} ${outfit.variable} font-sans antialiased`}>
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>

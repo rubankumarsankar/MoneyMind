@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useSession, signOut } from "next-auth/react";
 import { showSuccess, showError, showConfirm, showToast } from '@/lib/sweetalert';
+import RulesManager from './rules/page';
 
 export default function SettingsPage() {
   const { data: session } = useSession();
@@ -58,6 +59,7 @@ export default function SettingsPage() {
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'preferences', label: 'Preferences', icon: Settings2 },
     { id: 'notifications', label: 'Notifications', icon: Bell },
+    { id: 'rules', label: 'Rules', icon: Sparkles }, // New Tab
     { id: 'security', label: 'Security', icon: Shield },
   ];
 
@@ -341,6 +343,15 @@ export default function SettingsPage() {
               ))}
             </div>
           </div>
+        )}
+
+
+
+        {/* Rules Tab */}
+        {activeTab === 'rules' && (
+             <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+                 <RulesManager />
+             </div>
         )}
 
         {/* Security Tab */}

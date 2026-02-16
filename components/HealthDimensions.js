@@ -33,9 +33,9 @@ export default function HealthDimensions({ dimensions, overallScore }) {
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-bold text-slate-700">Health Dimensions</h3>
+    <div className="glass-panel p-6">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="font-bold text-slate-800 font-heading text-lg">Health Dimensions</h3>
         <div className={`text-sm font-bold px-3 py-1 rounded-full ${
           overallScore >= 70 ? 'bg-green-100 text-green-700' :
           overallScore >= 50 ? 'bg-yellow-100 text-yellow-700' :

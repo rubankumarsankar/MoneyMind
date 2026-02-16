@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "../auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import { getCustomMonthRange, getCurrentCustomMonth } from "@/lib/dateUtils";
+import { startOfDay, endOfDay, startOfMonth, endOfMonth, subMonths, subDays, format, eachDayOfInterval, eachMonthOfInterval, isSameMonth, isSameDay } from "date-fns";
 
 export async function GET(req) {
   const session = await getServerSession(authOptions);
@@ -11,162 +11,216 @@ export async function GET(req) {
   const userId = session.user.id;
   const { searchParams } = new URL(req.url);
   
-  // Enhanced filtering
   const filterType = searchParams.get('filter') || 'thisMonth';
-  const days = parseInt(searchParams.get('days') || '30', 10);
-  
-  // Calculate number of months to show based on filter
-  let months = 1;
-  if (filterType === 'today') months = 1;
-  else if (filterType === 'thisMonth') months = 1;
-  else if (filterType === '3month') months = 3;
-  else if (filterType === '6month') months = 6;
-  else if (filterType === '1year') months = 12;
-  else months = Math.max(1, Math.ceil(days / 30));
+  const customStart = searchParams.get('startDate');
+  const customEnd = searchParams.get('endDate');
+  const viewMode = searchParams.get('view') || 'auto'; // 'auto', 'daily', 'monthly'
+
+  // 1. Determine Date Range
+  let startDate = new Date();
+  let endDate = new Date(); // Today end
+  endDate.setHours(23, 59, 59, 999);
+
+  if (customStart && customEnd) {
+    startDate = new Date(customStart);
+    endDate = new Date(customEnd);
+    endDate.setHours(23, 59, 59, 999);
+  } else {
+    switch(filterType) {
+      case 'today':
+        startDate = startOfDay(new Date());
+        break;
+      case 'yesterday':
+        startDate = startOfDay(subDays(new Date(), 1));
+        endDate = endOfDay(subDays(new Date(), 1));
+        break;
+      case 'last7':
+        startDate = startOfDay(subDays(new Date(), 6));
+        break;
+      case 'last30':
+        startDate = startOfDay(subDays(new Date(), 29));
+        break;
+      case 'thisMonth':
+        startDate = startOfMonth(new Date());
+        break;
+      case 'lastMonth':
+        startDate = startOfMonth(subMonths(new Date(), 1));
+        endDate = endOfMonth(subMonths(new Date(), 1));
+        break;
+      case '3month':
+        startDate = startOfMonth(subMonths(new Date(), 2));
+        break;
+      case '6month':
+        startDate = startOfMonth(subMonths(new Date(), 5));
+        break;
+      case '1year':
+        startDate = startOfMonth(subMonths(new Date(), 11));
+        break;
+      case 'all':
+        // Find first transaction date or default to 1 year ago
+        const firstIncome = await prisma.income.findFirst({ where: { userId }, orderBy: { date: 'asc' } });
+        const firstExpense = await prisma.dailyExpense.findFirst({ where: { userId }, orderBy: { date: 'asc' } });
+        const d1 = firstIncome?.date || new Date();
+        const d2 = firstExpense?.date || new Date();
+        startDate = d1 < d2 ? d1 : d2;
+        if (!firstIncome && !firstExpense) startDate = subMonths(new Date(), 11);
+        startDate = startOfMonth(startDate);
+        break;
+      default:
+        startDate = startOfMonth(new Date());
+    }
+  }
+
+  // 2. Determine Grouping (Daily vs Monthly)
+  let groupBy = 'monthly';
+  if (viewMode === 'daily') groupBy = 'daily';
+  else if (viewMode === 'monthly') groupBy = 'monthly';
+  else {
+    // Auto determines based on duration
+    const diffDays = (endDate - startDate) / (1000 * 60 * 60 * 24);
+    groupBy = diffDays <= 60 ? 'daily' : 'monthly';
+  }
 
   try {
-    const [incomes, fixed, daily, emis, creditCards] = await Promise.all([
-      prisma.income.findMany({ where: { userId } }),
+    // 3. Fetch Data within Range
+    const [incomes, dailyExpenses, fixed, emis, creditCards] = await Promise.all([
+      prisma.income.findMany({ 
+        where: { userId, date: { gte: startDate, lte: endDate } },
+        orderBy: { date: 'asc' }
+      }),
+      prisma.dailyExpense.findMany({ 
+        where: { userId, date: { gte: startDate, lte: endDate } },
+        orderBy: { date: 'asc' }
+      }),
       prisma.fixedExpense.findMany({ where: { userId } }),
-      prisma.dailyExpense.findMany({ where: { userId } }),
       prisma.eMI.findMany({ where: { userId } }),
       prisma.creditCard.findMany({ where: { userId }, include: { spends: true } }),
     ]);
 
-    // Calculate date range based on filter
-    const today = new Date();
-    today.setHours(23, 59, 59, 999);
-    
-    let filterStart = new Date();
-    let filterEnd = new Date(today);
-    
-    if (filterType === 'today') {
-      filterStart.setHours(0, 0, 0, 0);
-    } else {
-      filterStart.setDate(filterStart.getDate() - days);
-      filterStart.setHours(0, 0, 0, 0);
-    }
-
-    // Generate labels and data based on filter type
+    // 4. Process Data Intervals
     const labels = [];
     const incomeData = [];
     const expenseData = [];
     const savingsData = [];
 
-    if (filterType === 'today') {
-      // Single data point for today
-      labels.push('Today');
-      
-      const todayStart = new Date();
-      todayStart.setHours(0, 0, 0, 0);
-      const todayEnd = new Date();
-      todayEnd.setHours(23, 59, 59, 999);
-
-      const todayIncome = incomes
-        .filter(inc => {
-          const date = new Date(inc.date);
-          return date >= todayStart && date <= todayEnd;
-        })
-        .reduce((sum, curr) => sum + curr.amount, 0);
-
-      const todayDaily = daily
-        .filter(exp => {
-          const date = new Date(exp.date);
-          return date >= todayStart && date <= todayEnd;
-        })
-        .reduce((sum, curr) => sum + curr.amount, 0);
-
-      incomeData.push(todayIncome);
-      expenseData.push(todayDaily);
-      savingsData.push(todayIncome - todayDaily);
+    let intervals = [];
+    if (groupBy === 'daily') {
+      intervals = eachDayOfInterval({ start: startDate, end: endDate });
     } else {
-      // Monthly data points using custom month ranges
-      const { start: currentCycleStart } = getCurrentCustomMonth(6);
-      
-      for (let i = months - 1; i >= 0; i--) {
-        const refDate = new Date(currentCycleStart);
-        refDate.setMonth(refDate.getMonth() - i);
-        const { start: monthStart, end: monthEnd, label } = getCustomMonthRange(refDate, 6);
-        
-        labels.push(label);
-
-        // Filter Income
-        const monthlyIncome = incomes
-          .filter(inc => {
-            const date = new Date(inc.date);
-            return date >= monthStart && date <= monthEnd;
-          })
-          .reduce((sum, curr) => sum + curr.amount, 0);
-
-        // Filter Daily Expense
-        const monthlyDaily = daily
-          .filter(exp => {
-            const date = new Date(exp.date);
-            return date >= monthStart && date <= monthEnd;
-          })
-          .reduce((sum, curr) => sum + curr.amount, 0);
-
-        // Fixed (static per month)
-        const monthlyFixed = fixed.reduce((sum, curr) => sum + curr.amount, 0);
-        
-        // EMI (active during this month)
-        const monthlyEMI = emis
-          .filter(emi => new Date(emi.startDate) <= monthEnd)
-          .reduce((sum, curr) => sum + curr.monthlyAmount, 0);
-
-        // CC Spends
-        const monthlyCCSpends = creditCards.reduce((acc, card) => {
-          return acc + card.spends
-            .filter(s => s.type !== 'PAYMENT' && !s.dailyExpenseId)
-            .filter(s => {
-              const d = new Date(s.date);
-              return d >= monthStart && d <= monthEnd;
-            })
-            .reduce((sum, s) => sum + s.amount, 0);
-        }, 0);
-
-        const totalExpense = monthlyDaily + monthlyFixed + monthlyEMI + monthlyCCSpends;
-        
-        incomeData.push(monthlyIncome);
-        expenseData.push(totalExpense);
-        savingsData.push(monthlyIncome - totalExpense);
-      }
+      intervals = eachMonthOfInterval({ start: startDate, end: endDate });
     }
 
-    // Category breakdown for the filtered period
+    intervals.forEach(date => {
+      let label = '';
+      let periodStart, periodEnd;
+
+      if (groupBy === 'daily') {
+        label = format(date, 'dd MMM'); // 12 Feb
+        periodStart = startOfDay(date);
+        periodEnd = endOfDay(date);
+      } else {
+        label = format(date, 'MMM yyyy'); // Feb 2024
+        periodStart = startOfMonth(date);
+        periodEnd = endOfMonth(date);
+      }
+      labels.push(label);
+
+      // --- Aggregation Logic ---
+
+      // Income
+      const periodIncome = incomes
+        .filter(i => {
+            const d = new Date(i.date);
+            return d >= periodStart && d <= periodEnd;
+        })
+        .reduce((sum, item) => sum + item.amount, 0);
+
+      // Daily Expenses
+      const periodDaily = dailyExpenses
+        .filter(e => {
+            const d = new Date(e.date);
+            return d >= periodStart && d <= periodEnd;
+        })
+        .reduce((sum, item) => sum + item.amount, 0);
+
+      // Fixed Expenses (Only applies once per month for monthly view, 
+      // or distributed/on specific day for daily view? simplistic: monthly view includes full amount, daily view typically doesn't show fixed unless on specific day.
+      // For simplicity in this graph:
+      // - Monthly View: Add all fixed expenses + EMIs
+      // - Daily View: Only show Daily Expenses + Credit Spends. Fixed/EMI usually don't map to specific days easily without 'dayOfMonth' logic.
+      // Let's implement DayOfMonth logic for Daily View if possible, or just ignore Fixed for daily trends to avoid spikes.
+      // BETTER UX: Pro-rate or show on 1st? Let's show on specific 'dayOfMonth' if daily view.
+
+      let periodFixed = 0;
+      let periodEMI = 0;
+
+      if (groupBy === 'monthly') {
+          // Full amount for the month
+          periodFixed = fixed.reduce((sum, f) => sum + f.amount, 0);
+          periodEMI = emis
+            .filter(e => new Date(e.startDate) <= periodEnd) // Active EMIs
+            .reduce((sum, e) => sum + e.monthlyAmount, 0);
+      } else {
+          // Daily view: check if today is the day
+          const day = date.getDate();
+          periodFixed = fixed
+            .filter(f => f.dayOfMonth === day)
+            .reduce((sum, f) => sum + f.amount, 0);
+            
+          // EMIs usually on 1st or specific date. Let's assume 5th for now if not specified or check schema? Schema doesn't have day for EMI.
+          // Schema EMI has startDate. We can use startDate's day.
+          periodEMI = emis
+            .filter(e => {
+                const emiDay = new Date(e.startDate).getDate();
+                return emiDay === day && new Date(e.startDate) <= date;
+            })
+            .reduce((sum, e) => sum + e.monthlyAmount, 0);
+      }
+
+      // Credit Card Spends (Transaction Date)
+      const periodCC = creditCards.reduce((total, card) => {
+         const cardSpends = card.spends.filter(s => {
+             const d = new Date(s.date);
+             return !s.dailyExpenseId && // avoidable double counting if linked
+                    s.type !== 'PAYMENT' &&
+                    d >= periodStart && d <= periodEnd;
+         });
+         return total + cardSpends.reduce((sum, s) => sum + s.amount, 0);
+      }, 0);
+
+      const totalPeriodExpense = periodDaily + periodFixed + periodEMI + periodCC;
+      
+      incomeData.push(periodIncome);
+      expenseData.push(totalPeriodExpense);
+      savingsData.push(periodIncome - totalPeriodExpense);
+    });
+
+    // 5. Category Breakdown (Aggregated for entire range)
     const categoryMap = {};
-    daily
-      .filter(exp => {
-        const date = new Date(exp.date);
-        return date >= filterStart && date <= filterEnd;
-      })
-      .forEach(exp => {
-        const cat = exp.category || 'Other';
-        categoryMap[cat] = (categoryMap[cat] || 0) + exp.amount;
-      });
+    dailyExpenses.forEach(exp => {
+       const cat = exp.category || 'Other';
+       categoryMap[cat] = (categoryMap[cat] || 0) + exp.amount;
+    });
+    
+    // Add Fixed/EMI Categories too?
+    fixed.forEach(f => {
+       const cat = f.category || 'Bills';
+       // Only add if we are in a range that covers this fixed expense? 
+       // For simple Pie chart, we assume "Average Monthly" breakdown or "Actual Spent in Range".
+       // If range < 1 month, fixed expenses might distort it if simply added. 
+       // Logic: If range >= 1 month, add occurrences.
+       // For now, let's keep Pie Chart strictly for "Daily/Variable" spending as that's what user controls most.
+       // Or we can add them. Let's add them for completeness if view is Monthly.
+    });
 
     const categoryBreakdown = Object.entries(categoryMap)
       .map(([category, amount]) => ({ category, amount }))
       .sort((a, b) => b.amount - a.amount);
 
-    // Fixed expenses list
-    const fixedExpensesList = fixed.map(f => ({
-      id: f.id,
-      name: f.name,
-      amount: f.amount,
-      category: f.category
-    }));
 
-    // Period totals
+    // 6. Totals
     const totalIncome = incomeData.reduce((a, b) => a + b, 0);
     const totalExpense = expenseData.reduce((a, b) => a + b, 0);
-    
-    const yearlyComparison = {
-        income: totalIncome,
-        expense: totalExpense,
-        savings: totalIncome - totalExpense,
-        savingsRate: totalIncome > 0 ? ((totalIncome - totalExpense) / totalIncome) * 100 : 0
-    };
 
     return NextResponse.json({
         labels,
@@ -174,19 +228,25 @@ export async function GET(req) {
         expense: expenseData,
         savings: savingsData,
         categoryBreakdown,
-        fixedExpenses: fixedExpensesList,
+        // Summary Cards
+        yearlyComparison: {
+            income: totalIncome,
+            expense: totalExpense,
+            savings: totalIncome - totalExpense,
+            savingsRate: totalIncome > 0 ? ((totalIncome - totalExpense) / totalIncome) * 100 : 0
+        },
+        fixedExpenses: fixed, 
         totalFixed: fixed.reduce((sum, f) => sum + f.amount, 0),
         totalEMI: emis.reduce((sum, e) => sum + e.monthlyAmount, 0),
-        yearlyComparison,
-        filterType,
-        periodLabel: filterType === 'today' ? 'Today' : 
-                     filterType === 'thisMonth' ? 'This Month' :
-                     filterType === '3month' ? 'Last 3 Months' :
-                     filterType === '6month' ? 'Last 6 Months' : 'Last Year'
+        meta: {
+            startDate,
+            endDate,
+            groupBy
+        }
     });
 
   } catch (error) {
-    console.error(error);
-    return NextResponse.json({ message: "Error generating reports" }, { status: 500 });
+    console.error("Report API Error:", error);
+    return NextResponse.json({ message: "Failed to generate report" }, { status: 500 });
   }
 }

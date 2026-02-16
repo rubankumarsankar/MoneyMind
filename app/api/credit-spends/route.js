@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "../auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 
 export async function POST(req) {
@@ -15,7 +15,7 @@ export async function POST(req) {
         // 1. Create Credit Spend/Payment Record
         const spend = await tx.creditSpend.create({
             data: {
-              cardId,
+              cardId: parseInt(cardId),
               amount: parsedAmount,
               description,
               date: new Date(date),
@@ -26,7 +26,7 @@ export async function POST(req) {
         // 2. If Payment and Account linked, deduct from Account
         if (type === 'PAYMENT' && accountId) {
             await tx.account.update({
-                where: { id: accountId },
+                where: { id: parseInt(accountId) },
                 data: {
                     balance: { decrement: parsedAmount }
                 }
@@ -78,7 +78,8 @@ export async function DELETE(req) {
     // or we'd need to store which account was used in the CreditSpend model.
     // Since we didn't add accountId to CreditSpend schema, we can't revert automatically.
     // This is a trade-off. We assume deletions are rare corrections.
-    await prisma.creditSpend.delete({ where: { id } });
+    if (!id) return NextResponse.json({ message: "ID required" }, { status: 400 });
+    await prisma.creditSpend.delete({ where: { id: parseInt(id) } });
     return NextResponse.json({ message: "Deleted" });
   } catch (error) {
     return NextResponse.json({ message: "Error deleting transaction" }, { status: 500 });

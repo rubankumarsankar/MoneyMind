@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from "next-auth/react";
-import { Wallet, Plus, Trash2, AlertTriangle, CheckCircle, TrendingUp } from 'lucide-react';
-import { showError, showDeleteConfirm, showToast } from '@/lib/sweetalert';
+import { Wallet, Plus, Trash2, AlertTriangle, CheckCircle, TrendingUp, Zap } from 'lucide-react';
+import { showError, showDeleteConfirm, showToast, showConfirm } from '@/lib/sweetalert';
 
 const CATEGORIES = [
   'Food', 'Travel', 'Entertainment', 'Shopping', 'Health', 'Utilities', 
@@ -61,6 +61,27 @@ export default function BudgetPage() {
     showToast('success', 'Budget removed!');
   };
 
+  const handleAutoSet = async () => {
+    const result = await showConfirm('Auto-Set Budgets?', 'This will calculate average spending from the last 3 months and set your budget limits automatically. Existing limits may be updated.', 'info');
+    if (result.isConfirmed) {
+        setLoading(true);
+        try {
+            const res = await fetch('/api/budgets/auto-calculate', { method: 'POST' });
+            if (res.ok) {
+                const data = await res.json();
+                showToast('success', `Updated ${data.count} budgets!`);
+                fetchBudgets();
+            } else {
+                 showError('Error', 'Failed to auto-set budgets');
+            }
+        } catch (e) {
+            showError('Error', 'Failed to auto-set budgets');
+        } finally {
+            setLoading(false); // fetchBudgets inside handles loading? fetchBudgets sets loading false finally.
+        }
+    }
+  };
+
   const getStatusColor = (status) => {
     if (status === 'EXCEEDED') return 'bg-red-500';
     if (status === 'WARNING') return 'bg-amber-500';
@@ -84,12 +105,21 @@ export default function BudgetPage() {
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">Budget Manager</h1>
           <p className="text-slate-500 text-sm sm:text-base">Set spending limits for each category</p>
         </div>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="btn-primary flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 shadow-purple-500/30 w-full sm:w-auto"
-        >
-          <Plus size={20} /> Add Budget
-        </button>
+        <div className="flex gap-3 w-full sm:w-auto">
+            <button
+            onClick={handleAutoSet}
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-colors"
+            >
+            <Zap size={20} className="text-amber-500" />
+            <span className="hidden sm:inline">Auto-Set</span>
+            </button>
+            <button
+            onClick={() => setShowForm(!showForm)}
+            className="flex-1 sm:flex-none btn-primary flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 shadow-purple-500/30"
+            >
+            <Plus size={20} /> Add Budget
+            </button>
+        </div>
       </div>
 
       {/* Add Form */}

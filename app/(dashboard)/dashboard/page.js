@@ -15,8 +15,10 @@ import {
   ChevronRight,
   Activity,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  Sparkles
 } from 'lucide-react';
+import { showError, showToast } from '@/lib/sweetalert';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title } from 'chart.js';
 import { Doughnut, Bar } from 'react-chartjs-2';
 import { useSession } from "next-auth/react";
@@ -27,6 +29,7 @@ import SafeSpendCard from '@/components/SafeSpendCard';
 import HealthDimensions from '@/components/HealthDimensions';
 import StressIndicator from '@/components/StressIndicator';
 import CategoryTrends from '@/components/CategoryTrends';
+import FinancialProjection from '@/components/FinancialProjection';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
 
@@ -34,18 +37,71 @@ export default function Dashboard() {
   const { data: session } = useSession();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
+  const [magicInput, setMagicInput] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const fetchData = async () => {
+    try {
+      const res = await fetch('/api/dashboard');
+      const json = await res.json();
+      setData(json);
+      setLoading(false);
+    } catch (err) {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    if (session) {
-      fetch('/api/dashboard')
-        .then(res => res.json())
-        .then(data => {
-          setData(data);
-          setLoading(false);
-        })
-        .catch(err => setLoading(false));
-    }
+    if (session) fetchData();
   }, [session]);
+
+  const handleMagicSubmit = async (e) => {
+    e.preventDefault();
+    if (!magicInput.trim()) return;
+    setSubmitting(true);
+
+    const input = magicInput.trim();
+    // Simple Heuristic: Extract first number as amount
+    const amountMatch = input.match(/(\d+(?:\.\d{1,2})?)/);
+    
+    if (!amountMatch) {
+       showError("Missing Amount", "Please include an amount (e.g. '200 lunch')");
+       setSubmitting(false);
+       return;
+    }
+
+    const amount = parseFloat(amountMatch[0]);
+    // Remove amount from string to get note
+    const note = input.replace(amountMatch[0], '').trim() || 'Quick Expense';
+
+    try {
+        const res = await fetch('/api/daily-expenses', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                amount,
+                note,
+                date: new Date().toISOString(),
+                category: 'Uncategorized', // API Rules Engine will auto-categorize!
+                paymentMethod: 'CASH' // Default
+            })
+        });
+
+        if (res.ok) {
+            const newExpense = await res.json();
+            showToast('success', `Added: ₹${amount} (${newExpense.category})`);
+            setMagicInput('');
+            fetchData(); // Refresh dashboard
+        } else {
+            showError('Error', 'Failed to add expense');
+        }
+    } catch (error) {
+        console.error(error);
+        showError('Error', 'Something went wrong');
+    } finally {
+        setSubmitting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -83,33 +139,48 @@ export default function Dashboard() {
   const prediction = data.prediction || {};
 
   return (
-    <div className="space-y-8 max-w-[1600px] mx-auto pb-10">
+    <div className="space-y-6 max-w-[1600px] mx-auto pb-10 px-4 sm:px-6 lg:px-8">
       
-      {/* 1. Header Section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-           <h1 className="text-4xl font-bold text-slate-900 tracking-tight">
+      {/* 1. Top Section: Header & Magic Input */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end">
+        <div className="lg:col-span-8">
+           <h1 className="text-4xl font-bold text-slate-900 tracking-tight font-heading">
              Good Morning, <span className="bg-clip-text text-transparent bg-linear-to-r from-blue-600 to-violet-600">{session?.user?.name?.split(' ')[0]}</span>
            </h1>
-           <p className="text-slate-500 mt-2 text-lg">Here's your financial pulse for today.</p>
+           <p className="text-slate-500 mt-2 text-lg">Here&apos;s your financial pulse for today.</p>
         </div>
         
-        <div className="flex items-center gap-4 bg-white/60 p-2 pl-4 rounded-2xl border border-white/60 shadow-xs">
-          <div className="text-right">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Current Cycle</p>
-            <p className="font-semibold text-slate-700">{data.cycleLabel || 'Monthly'}</p>
-          </div>
-          <div className="h-10 w-px bg-slate-200"></div>
-          <div className="bg-blue-50 text-blue-700 px-4 py-2 rounded-xl font-bold flex flex-col items-center">
-             <span className="text-lg leading-none">{data.daysLeft}</span>
-             <span className="text-[10px] uppercase">Days Left</span>
-          </div>
+        {/* Magic Input - Compact & Modern */}
+        <div className="lg:col-span-4">
+             <form onSubmit={handleMagicSubmit} className="relative group">
+                <div className={`absolute inset-0 bg-linear-to-r from-blue-600 to-violet-600 rounded-2xl blur-xl opacity-20 group-hover:opacity-30 transition-opacity ${submitting ? 'animate-pulse' : ''}`}></div>
+                <div className="relative glass-panel p-1.5 flex items-center transition-all focus-within:ring-4 focus-within:ring-blue-500/10 focus-within:border-blue-500/50">
+                    <div className="p-3 bg-linear-to-br from-blue-600 to-violet-600 rounded-xl text-white shadow-lg shadow-blue-500/20">
+                        <Sparkles size={20} className={submitting ? "animate-spin" : ""} />
+                    </div>
+                    <input 
+                        type="text" 
+                        value={magicInput}
+                        onChange={(e) => setMagicInput(e.target.value)}
+                        placeholder="Magic Add: '200 coffee'..."
+                        className="w-full h-full px-4 text-base font-medium text-slate-700 placeholder:text-slate-400 focus:outline-hidden bg-transparent"
+                        disabled={submitting}
+                    />
+                    <button 
+                        type="submit"
+                        disabled={submitting || !magicInput.trim()}
+                        className="px-4 py-2 bg-slate-900 text-white text-sm font-bold rounded-xl hover:bg-slate-800 disabled:opacity-50 transition-all"
+                    >
+                        Add
+                    </button>
+                </div>
+            </form>
         </div>
       </div>
 
-      {/* 2. Notifications Banner (if any) */}
+      {/* 2. Notifications Banner */}
       {data.notifications && data.notifications.length > 0 && (
-        <div className="bg-linear-to-r from-orange-50 to-amber-50 border border-orange-100 rounded-2xl p-4 flex items-start gap-4 shadow-sm">
+        <div className="bg-linear-to-r from-orange-50 to-amber-50 border border-orange-100 rounded-2xl p-4 flex items-start gap-4 shadow-sm animate-in fade-in slide-in-from-top-4">
           <div className="p-2 bg-orange-100 text-orange-600 rounded-xl shrink-0">
             <Bell size={20} />
           </div>
@@ -117,23 +188,19 @@ export default function Dashboard() {
              <h4 className="font-bold text-orange-900 text-sm">{data.notifications[0]?.title}</h4>
              <p className="text-orange-700/80 text-sm mt-0.5">{data.notifications[0]?.message}</p>
           </div>
-          {data.notifications.length > 1 && (
-             <span className="px-3 py-1 bg-white/50 text-orange-700 text-xs font-bold rounded-lg border border-orange-100">
-               +{data.notifications.length - 1} more
-             </span>
-          )}
         </div>
       )}
 
-      {/* 3. Key Intelligence Grid */}
+      {/* 3. Hero Bento Grid: Health + Projections */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Health Gauge - Large Focus */}
-          <div className="lg:col-span-4 glass-panel p-6 flex flex-col relative overflow-hidden">
+          
+          {/* Health Gauge - Anchor */}
+          <div className="lg:col-span-4 glass-panel p-6 flex flex-col relative overflow-hidden min-h-[340px]">
               <div className="absolute top-0 right-0 p-32 bg-blue-500/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
               <div className="flex justify-between items-start mb-6 relative z-10">
                  <div>
-                   <h3 className="font-bold text-lg text-slate-800">Health Score</h3>
-                   <p className="text-slate-500 text-sm">Overall financial vitality</p>
+                   <h3 className="font-bold text-lg text-slate-800 font-heading">Health Score</h3>
+                   <p className="text-slate-500 text-sm">Overall vitality</p>
                  </div>
                  <div className={`px-3 py-1 rounded-full text-xs font-bold ${
                     data.riskLevel === 'CRITICAL' ? 'bg-red-100 text-red-700' :
@@ -148,68 +215,13 @@ export default function Dashboard() {
               </div>
           </div>
 
-          {/* Quick Stats Cards */}
-          <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {/* Safe to Spend */}
-              <SafeSpendCard amount={data.safeToSpend?.daily || 0} status={data.safeToSpend?.status} className="glass-card" />
-
-              {/* Velocity */}
-              <div className="glass-card p-6 flex flex-col justify-between">
-                  <div className="flex items-center justify-between mb-4">
-                      <div className="bg-slate-100 p-2 rounded-xl text-slate-600">
-                        <Zap size={20} />
-                      </div>
-                      {data.dailyVelocity > (data.totalIncome / 30) ? (
-                         <span className="flex items-center text-red-500 text-xs font-bold gap-1 bg-red-50 px-2 py-1 rounded-lg">
-                           <ArrowUpRight size={14} /> High
-                         </span>
-                      ) : (
-                         <span className="flex items-center text-green-500 text-xs font-bold gap-1 bg-green-50 px-2 py-1 rounded-lg">
-                           <TrendingDown size={14} /> Stable
-                         </span>
-                      )}
-                  </div>
-                  <div>
-                    <h3 className="text-slate-500 font-medium text-sm">Daily Velocity</h3>
-                    <p className="text-3xl font-bold text-slate-900 mt-1">₹{(data.dailyVelocity || 0).toLocaleString()}</p>
-                    <p className="text-xs text-slate-400 mt-2">Avg. spend per day</p>
-                  </div>
-              </div>
-
-               {/* Forecast */}
-               <div className="glass-card p-6 flex flex-col justify-between">
-                  <div className="flex items-center justify-between mb-4">
-                      <div className="bg-blue-50 p-2 rounded-xl text-blue-600">
-                        <Activity size={20} />
-                      </div>
-                      <span className="text-slate-400 text-xs font-bold bg-slate-50 px-2 py-1 rounded-lg">
-                        {prediction.confidence || 0}% Conf.
-                      </span>
-                  </div>
-                  <div>
-                    <h3 className="text-slate-500 font-medium text-sm">Next Month</h3>
-                    <p className="text-3xl font-bold text-slate-900 mt-1">₹{(prediction.predicted || 0).toLocaleString()}</p>
-                    <div className="flex items-center gap-2 mt-2">
-                       {prediction.trend?.direction === 'INCREASING' ? (
-                          <span className="text-xs font-bold text-red-500 flex items-center">
-                             <TrendingUp size={12} className="mr-1" /> Rising
-                          </span>
-                       ) : prediction.trend?.direction === 'DECREASING' ? (
-                          <span className="text-xs font-bold text-green-500 flex items-center">
-                             <TrendingDown size={12} className="mr-1" /> Falling
-                          </span>
-                       ) : (
-                          <span className="text-xs font-bold text-slate-500">Stable</span>
-                       )}
-                       <span className="text-slate-300 text-[10px]">•</span>
-                       <span className="text-xs text-slate-400">Forecast</span>
-                    </div>
-                  </div>
-              </div>
+          {/* 3-Month Projection - Prime Real Estate */}
+          <div className="lg:col-span-8 flex flex-col justify-center">
+               <FinancialProjection />
           </div>
       </div>
 
-      {/* 4. Core Metrics Row */}
+      {/* 4. Core Metrics Row - High Precision */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
          <StatsCard 
            title="Total Income" 
@@ -225,41 +237,41 @@ export default function Dashboard() {
            icon={TrendingDown} 
            color="text-red-600" 
            bg="bg-red-50" 
-           trend={-5} // example
+           trend={-5} 
          />
-         <StatsCard 
-           title="Net Savings" 
-           amount={data.savings || 0} 
-           icon={Target} 
-           color={data.savings >= 0 ? "text-blue-600" : "text-orange-600"} 
-           bg={data.savings >= 0 ? "bg-blue-50" : "bg-orange-50"} 
-         />
-         <StatsCard 
-           title="Total Assets" 
-           amount={data.totalAssets || 0} 
-           icon={Landmark} 
-           color="text-violet-600" 
-           bg="bg-violet-50" 
-         />
+         <SafeSpendCard amount={data.safeToSpend?.daily || 0} status={data.safeToSpend?.status} className="glass-card h-full" />
+         
+         <div className="glass-panel p-5 flex flex-col justify-between hover:scale-[1.02] transition-transform duration-300">
+             <div className="flex justify-between items-start mb-4">
+                <div className="bg-violet-50 p-3 rounded-2xl text-violet-600">
+                  <Landmark size={22} />
+                </div>
+                <span className="text-xs font-bold px-2 py-1 rounded-lg bg-violet-100 text-violet-700">Net</span>
+             </div>
+             <div>
+                <h4 className="text-slate-500 font-medium text-sm">Net Savings</h4>
+                <p className={`text-2xl font-bold mt-1 font-heading ${data.savings >= 0 ? 'text-slate-900' : 'text-red-600'}`}>
+                    {data.savings < 0 ? '-' : ''}₹{Math.abs(data.savings || 0).toLocaleString('en-IN')}
+                </p>
+             </div>
+         </div>
       </div>
 
-      {/* 5. Main Content Split */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      {/* 5. Analysis & Insights Split */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
-          {/* Left Column: Analysis & Insights */}
+          {/* Left Column: Charts & Insights */}
           <div className="lg:col-span-1 space-y-6">
-             {/* Expense Breakdown */}
              <div className="glass-panel p-6">
-                <h3 className="font-bold text-lg text-slate-800 mb-6">Expense Structure</h3>
+                <h3 className="font-bold text-lg text-slate-800 mb-6 font-heading">Expense Structure</h3>
                 <div className="h-64 relative">
-                   <Doughnut data={doughnutData} options={{ maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8 } } } }} />
+                   <Doughnut data={doughnutData} options={{ maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, font: { family: 'Inter' } } } } }} />
                 </div>
              </div>
 
-             {/* Smart Suggestions */}
              <div className="glass-panel p-0 overflow-hidden">
                 <div className="p-5 border-b border-slate-100 bg-slate-50/50">
-                  <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">
+                  <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2 font-heading">
                     <Zap size={18} className="text-amber-500" />
                     Smart Insights
                   </h3>
@@ -270,13 +282,13 @@ export default function Dashboard() {
              </div>
           </div>
 
-          {/* Right Column: Detailed Metrics */}
+          {/* Right Column: Dimensions & Transactions */}
           <div className="lg:col-span-2 space-y-6">
               
-              {/* Financial Dimensions */}
+              {/* Health Radar */}
               <div className="glass-panel p-6">
                   <div className="flex justify-between items-center mb-6">
-                     <h3 className="font-bold text-lg text-slate-800">Health Dimensions</h3>
+                     <h3 className="font-bold text-lg text-slate-800 font-heading">Health Dimensions</h3>
                   </div>
                   <HealthDimensions
                     dimensions={data.healthDimensions}
@@ -284,11 +296,11 @@ export default function Dashboard() {
                   />
               </div>
 
-              {/* Recent Transactions */}
+              {/* Transactions List */}
               <div className="glass-panel p-6">
                  <div className="flex justify-between items-center mb-6">
-                    <h3 className="font-bold text-lg text-slate-800">Recent Activity</h3>
-                    <button className="text-sm font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1">
+                    <h3 className="font-bold text-lg text-slate-800 font-heading">Recent Activity</h3>
+                    <button className="text-sm font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1 transition-colors">
                       View All <ChevronRight size={16} />
                     </button>
                  </div>
@@ -331,7 +343,7 @@ function StatsCard({ title, amount, icon: Icon, color, bg, trend }) {
        </div>
        <div>
           <h4 className="text-slate-500 font-medium text-sm">{title}</h4>
-          <p className="text-2xl font-bold text-slate-900 mt-1">₹{(amount || 0).toLocaleString('en-IN')}</p>
+          <p className="text-2xl font-bold text-slate-900 mt-1 font-heading">₹{(amount || 0).toLocaleString('en-IN')}</p>
        </div>
     </div>
   );
@@ -361,7 +373,7 @@ function TransactionRow({ item }) {
           </div>
        </div>
        <div className="text-right">
-          <p className={`font-bold text-lg ${isIncome ? 'text-green-600' : 'text-slate-900'}`}>
+          <p className={`font-bold text-lg font-heading ${isIncome ? 'text-green-600' : 'text-slate-900'}`}>
              {isIncome ? '+' : '-'}₹{Math.abs(item.amount).toLocaleString()}
           </p>
        </div>

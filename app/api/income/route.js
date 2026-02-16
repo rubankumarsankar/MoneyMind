@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "../auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 
 export async function GET(req) {
@@ -42,14 +42,14 @@ export async function POST(req) {
               amount: parsedAmount,
               source,
               date: new Date(date),
-              accountId: accountId || null
+              accountId: accountId ? parseInt(accountId) : null
             },
         });
 
         // 2. Update Account Balance if linked
         if (accountId) {
             await tx.account.update({
-                where: { id: accountId },
+                where: { id: parseInt(accountId) },
                 data: {
                     balance: { increment: parsedAmount }
                 }
@@ -71,20 +71,51 @@ export async function PUT(req) {
   if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
   try {
-    const { id, amount, source, date } = await req.json();
-    // Complex to handle balance update on edit, simplifying to just update record for now
-    // Ideally should revert old amount from old account and add new amount to new account
-    // For now, just updating the record fields.
-    const updatedIncome = await prisma.income.update({
-      where: { id },
-      data: {
-        amount: parseFloat(amount),
-        source,
-        date: new Date(date),
-      },
+    const { id, amount, source, date, accountId } = await req.json();
+    const newAmount = parseFloat(amount);
+    const newAccountId = accountId ? parseInt(accountId) : null;
+
+    const result = await prisma.$transaction(async (tx) => {
+        // 1. Fetch old income
+        const oldIncome = await tx.income.findUnique({
+            where: { id: parseInt(id) }
+        });
+
+        if (!oldIncome) throw new Error("Income not found");
+
+        // 2. Revert logic (Deduct old amount from old account)
+        if (oldIncome.accountId) {
+            await tx.account.update({
+                where: { id: oldIncome.accountId },
+                data: { balance: { decrement: oldIncome.amount } }
+            });
+        }
+
+        // 3. Update Income
+        const updatedIncome = await tx.income.update({
+            where: { id: parseInt(id) },
+            data: {
+                amount: newAmount,
+                source,
+                date: new Date(date),
+                accountId: newAccountId // Allow changing account
+            }
+        });
+
+        // 4. Apply new logic (Add new amount to new account)
+        if (newAccountId) {
+            await tx.account.update({
+                where: { id: newAccountId },
+                data: { balance: { increment: newAmount } }
+            });
+        }
+
+        return updatedIncome;
     });
-    return NextResponse.json(updatedIncome);
+
+    return NextResponse.json(result);
   } catch (error) {
+    console.error(error);
     return NextResponse.json({ message: "Error updating income" }, { status: 500 });
   }
 }
@@ -97,8 +128,11 @@ export async function DELETE(req) {
   const id = searchParams.get('id');
 
   try {
+    if (!id) return NextResponse.json({ message: "ID required" }, { status: 400 });
+    const idInt = parseInt(id);
+
     await prisma.$transaction(async (tx) => {
-        const income = await tx.income.findUnique({ where: { id } });
+        const income = await tx.income.findUnique({ where: { id: idInt } });
         if (!income) throw new Error("Income not found");
 
         // Revert Balance
@@ -109,7 +143,7 @@ export async function DELETE(req) {
              });
         }
 
-        await tx.income.delete({ where: { id } });
+        await tx.income.delete({ where: { id: idInt } });
     });
 
     return NextResponse.json({ message: "Deleted" });

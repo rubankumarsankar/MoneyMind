@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Check, Rocket, Landmark, Wallet, Layers } from "lucide-react";
 import { showSuccess, showError } from "@/lib/sweetalert";
 
 export default function OnboardingPage() {
   const router = useRouter();
+  const { update } = useSession();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   
@@ -51,7 +53,11 @@ export default function OnboardingPage() {
       });
 
       if (res.ok) {
+        // Update session to reflect new onboarding status
+        await update({ onboardingCompleted: true });
+        
         await showSuccess('Setup Complete!', 'Your financial dashboard is ready.');
+        router.refresh(); // Refresh router cache
         router.push("/dashboard");
       } else {
         showError('Setup Failed', 'Please try again.');

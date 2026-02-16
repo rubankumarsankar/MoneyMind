@@ -4,39 +4,44 @@
 @source "../components/**/*.js";
 @source "../lib/**/*.js";
 
+@theme {
+  --font-sans: var(--font-inter);
+  --font-heading: var(--font-outfit);
+}
+
 @layer base {
   :root {
-    /* Premium Palette - Inter/SF Pro optimized */
-    --background: 210 40% 98%;
-    /* Porcelain White */
-    --foreground: 222 47% 11%;
-    /* Deep Navy */
+    /* Zenith Palette - Deep, Rich, Premium */
+    --background: 220 30% 96%;
+    /* Softer, cooler white */
+    --foreground: 224 71% 4%;
+    /* Near black, deep glossy navy */
 
-    --primary: 221 83% 53%;
-    /* Electric Blue - leaner */
-    --primary-foreground: 210 40% 98%;
+    --primary: 226 70% 55%;
+    /* Rich Royal Blue */
+    --primary-foreground: 0 0% 100%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 224 71% 4%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 224 71% 4%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222 47% 11.2%;
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 220.9 39.3% 11%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 8.9% 46.1%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222 47% 11.2%;
+    --accent: 220 14% 96%;
+    --accent-foreground: 220.9 39.3% 11%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221 83% 53%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 226 70% 55%;
 
     --radius: 1rem;
   }
@@ -44,47 +49,48 @@
   body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
-    /* Leaner, more subtle gradient mesh for a premium feel */
     background-image:
-      radial-gradient(at 0% 0%, hsla(250, 100%, 98%, 1) 0, transparent 55%),
-      radial-gradient(at 100% 0%, hsla(210, 100%, 97%, 1) 0, transparent 55%),
-      radial-gradient(at 100% 100%, hsla(250, 100%, 99%, 1) 0, transparent 55%);
+      radial-gradient(at 0% 0%, hsla(230, 80%, 96%, 1) 0, transparent 60%),
+      radial-gradient(at 100% 0%, hsla(210, 80%, 97%, 1) 0, transparent 60%),
+      radial-gradient(at 100% 100%, hsla(260, 60%, 98%, 1) 0, transparent 60%);
     background-attachment: fixed;
     min-height: 100vh;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 
-  /* Smooth scrolling */
-  html {
-    scroll-behavior: smooth;
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-outfit), sans-serif;
   }
 }
 
 @layer components {
 
-  /* Glassmorphism 2.0 - Cleaner, Lighter, crisper borders */
+  /* Zenith Glassmorphism - Premium Polish */
   .glass-panel {
-    @apply bg-white/70 backdrop-blur-xl border border-white/50 shadow-xl shadow-slate-200/40 rounded-3xl;
-    /* Fallback for non-supporting browsers */
-    background-color: rgba(255, 255, 255, 0.75);
+    @apply bg-white/60 backdrop-blur-2xl border border-white/60 shadow-xl shadow-slate-200/50 rounded-3xl;
+    /* Cleaner border, deeper blur */
   }
 
   .glass-card {
-    @apply bg-white/80 backdrop-blur-md border border-white/60 shadow-sm hover:shadow-lg transition-all duration-300 rounded-2xl;
+    @apply bg-white/70 backdrop-blur-lg border border-white/70 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 rounded-2xl;
   }
 
-  /* Premium Buttons */
+  /* Interactive Elements */
   .btn-primary {
-    @apply bg-slate-900 text-white font-semibold py-2 px-4 rounded-xl hover:bg-black hover:shadow-lg hover:shadow-slate-500/20 active:scale-95 transition-all duration-200 flex items-center justify-center gap-2;
+    @apply bg-slate-900 text-white font-semibold py-2.5 px-5 rounded-xl hover:bg-black hover:shadow-lg hover:shadow-slate-500/30 active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2;
   }
 
   .btn-secondary {
-    @apply bg-white border border-slate-200 text-slate-700 font-semibold py-2 px-4 rounded-xl hover:bg-slate-50 hover:border-slate-300 active:scale-95 transition-all duration-200 flex items-center justify-center gap-2;
+    @apply bg-white border border-slate-200 text-slate-700 font-semibold py-2.5 px-5 rounded-xl hover:bg-slate-50 hover:border-slate-300 hover:shadow-sm active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2;
   }
 
-  /* Modern Inputs */
   .input-field {
-    @apply w-full px-4 py-3 bg-white/50 border border-slate-200 rounded-xl outline-none text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all duration-200;
+    @apply w-full px-4 py-3 bg-white/60 border border-slate-200 rounded-xl outline-none text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all duration-200 font-medium;
   }
 
   /* Typography Utilities */
@@ -93,7 +99,7 @@
   }
 
   .text-gradient-primary {
-    @apply bg-clip-text text-transparent bg-linear-to-r from-blue-600 to-violet-600;
+    @apply bg-clip-text text-transparent bg-linear-to-r from-blue-600 via-indigo-600 to-violet-600;
   }
 }
 
@@ -135,6 +141,36 @@
 
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  /* Wider for visibility */
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.02);
+  /* Slight track visibility */
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  /* Darker (slate-300) */
+  border-radius: 20px;
+  border: 2px solid transparent;
+  /* Padding effect */
+  background-clip: content-box;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #94a3b8;
+  /* Darker hover (slate-400) */
 }
 
 /* Mobile-first responsive utilities */

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "../auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 
 const categories = ['RENT', 'UTILITY', 'SUBSCRIPTION', 'INSURANCE', 'LOAN', 'OTHER'];
@@ -37,7 +37,7 @@ export async function POST(req) {
         category: category || 'OTHER',
         amount: parseFloat(amount),
         dayOfMonth: parseInt(dayOfMonth),
-        accountId: accountId || null,
+        accountId: accountId ? parseInt(accountId) : null,
       },
     });
 
@@ -56,14 +56,14 @@ export async function PUT(req) {
     const { id, title, name, amount, dayOfMonth, category, accountId } = await req.json();
     
     const updatedExpense = await prisma.fixedExpense.update({
-      where: { id },
+      where: { id: parseInt(id) },
       data: {
         title: title || name,
         name: name || title,
         category: category || 'OTHER',
         amount: parseFloat(amount),
         dayOfMonth: parseInt(dayOfMonth),
-        accountId: accountId || null,
+        accountId: accountId ? parseInt(accountId) : null,
       },
     });
 
@@ -85,7 +85,7 @@ export async function DELETE(req) {
 
   try {
     await prisma.fixedExpense.delete({
-      where: { id: id },
+      where: { id: parseInt(id) },
     });
     return NextResponse.json({ message: "Deleted" });
   } catch (error) {

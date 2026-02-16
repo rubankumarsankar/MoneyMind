@@ -32,7 +32,7 @@ export default function PlanningPage() {
 
   useEffect(() => {
     if (session) {
-      fetch('/api/planning')
+      fetch(`/api/planning?months=${cashFlowMonths}`)
         .then(res => res.json())
         .then(result => {
           setData(result);
@@ -40,7 +40,7 @@ export default function PlanningPage() {
         })
         .catch(() => setLoading(false));
     }
-  }, [session]);
+  }, [session, cashFlowMonths]);
 
   const runWhatIfSimulation = async () => {
     const res = await fetch('/api/planning/simulate', {
@@ -77,6 +77,7 @@ export default function PlanningPage() {
         {[
           { id: 'cashflow', label: 'Cash Flow', icon: TrendingUp },
           { id: 'goals', label: 'Goals', icon: Target },
+          { id: 'credit', label: 'Credit Health', icon: Zap },
           { id: 'whatif', label: 'What-If', icon: Calculator },
           { id: 'freedom', label: 'Freedom Date', icon: Calendar },
           { id: 'stress', label: 'Stress Test', icon: AlertTriangle },
@@ -179,6 +180,81 @@ export default function PlanningPage() {
                 </div>
               </div>
             )}
+
+            {/* Predictions & Anomalies */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                
+                {/* 1. Anomalies Card (IQR) */}
+                <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+                    <h3 className="font-bold text-slate-700 mb-3 flex items-center gap-2">
+                        <AlertTriangle size={18} className="text-orange-500" />
+                        Spending Anomalies
+                    </h3>
+                    
+                    {data?.anomalies && data.anomalies.length > 0 ? (
+                        <div className="space-y-3">
+                            {data.anomalies.map((anomaly, idx) => (
+                                <div key={idx} className="flex justify-between items-start text-sm p-2 bg-orange-50 rounded-lg border border-orange-100">
+                                    <div>
+                                        <p className="font-medium text-slate-700">{anomaly.category}</p>
+                                        <p className="text-xs text-slate-500 mt-1">{anomaly.message}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="font-bold text-orange-600">₹{anomaly.current.toLocaleString()}</p>
+                                        <p className="text-[10px] text-orange-400">vs avg ₹{anomaly.median?.toLocaleString() || anomaly.average?.toLocaleString()}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-center py-6 text-slate-400 text-sm">
+                            <p>No unusual spending detected.</p>
+                            <p className="text-xs mt-1">Your spending patterns look normal.</p>
+                        </div>
+                    )}
+                </div>
+
+                {/* 2. AI Prediction (Holt's Linear) */}
+                <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+                    <h3 className="font-bold text-slate-700 mb-3 flex items-center gap-2">
+                        <TrendingUp size={18} className="text-purple-500" />
+                        Next Month Prediction
+                    </h3>
+
+                    {data?.prediction ? (
+                        <div className="space-y-4">
+                            <div className="text-center py-2">
+                                <p className="text-xs text-slate-500 uppercase tracking-widest font-semibold">Expected Spend</p>
+                                <p className="text-3xl font-bold text-slate-800 mt-1">
+                                    ₹{data.prediction.predicted?.toLocaleString()}
+                                </p>
+                                <p className="text-xs text-slate-400 mt-1">
+                                    Range: ₹{data.prediction.low?.toLocaleString()} - ₹{data.prediction.high?.toLocaleString()}
+                                </p>
+                            </div>
+
+                            <div className="bg-slate-50 p-3 rounded-lg text-xs space-y-2">
+                                <div className="flex justify-between">
+                                    <span className="text-slate-500">Confidence</span>
+                                    <span className="font-medium text-slate-700">{data.prediction.confidence}%</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-slate-500">Method</span>
+                                    <span className="font-medium text-slate-700">{data.prediction.method || 'EWMA'}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-slate-500">Volatility</span>
+                                    <span className="font-medium text-slate-700">{data.prediction.volatility}%</span>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="text-center py-6 text-slate-400 text-sm">
+                            <p>Insufficient data for prediction.</p>
+                        </div>
+                    )}
+                </div>
+            </div>
           </div>
         )}
 
@@ -400,6 +476,81 @@ export default function PlanningPage() {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Credit Health (New) */}
+        {activeTab === 'credit' && (
+          <div className="space-y-6">
+             <div className="flex justify-between items-center">
+                <h2 className="text-lg font-bold text-slate-700">Credit Health Monitor</h2>
+                <div className="text-right">
+                    <p className="text-xs text-slate-500">Estimated Score</p>
+                    <p className="text-3xl font-bold text-transparent bg-clip-text bg-linear-to-r from-blue-600 to-green-600">
+                        {data?.creditScore?.score || '---'}
+                    </p>
+                </div>
+             </div>
+
+             {data?.creditScore && (
+                 <div className="space-y-4">
+                     {/* Score Gauge / Progress */}
+                     <div className="h-4 bg-slate-100 rounded-full overflow-hidden relative">
+                         <div 
+                            className="h-full bg-linear-to-r from-red-500 via-yellow-500 to-green-500 transition-all duration-1000"
+                            style={{ width: `${((data.creditScore.score - 300) / 600) * 100}%` }}
+                         />
+                         <div className="absolute top-0 left-0 w-full h-full flex justify-between px-2 text-[10px] text-slate-400 font-medium pt-0.5">
+                             <span>300</span>
+                             <span>900</span>
+                         </div>
+                     </div>
+
+                    {/* Breakdown */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="p-4 border border-slate-200 rounded-xl">
+                            <h3 className="text-sm font-bold text-slate-700 mb-2">Utilization</h3>
+                            <div className="flex justify-between items-center mb-1">
+                                <span className="text-xs text-slate-500">Target: &lt;30%</span>
+                                <span className={`text-sm font-bold ${data.creditScore.utilization > 30 ? 'text-red-600' : 'text-green-600'}`}>
+                                    {data.creditScore.utilization?.toFixed(1)}%
+                                </span>
+                            </div>
+                            <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                                <div className={`h-full ${data.creditScore.utilization > 30 ? 'bg-red-500' : 'bg-green-500'}`} style={{ width: `${Math.min(100, data.creditScore.utilization)}%` }}></div>
+                            </div>
+                        </div>
+
+                        <div className="p-4 border border-slate-200 rounded-xl">
+                            <h3 className="text-sm font-bold text-slate-700 mb-2">Credit Mix</h3>
+                            <div className="flex justify-between items-center">
+                                <span className="text-xs text-slate-500">Accounts</span>
+                                <span className="text-sm font-bold text-slate-700">{data.creditScore.activeAccounts || 0}</span>
+                            </div>
+                             <p className="text-[10px] text-slate-400 mt-1">Includes Cards & Loans</p>
+                        </div>
+                    </div>
+
+                    {/* Recommendations */}
+                    <div className="bg-blue-50 p-4 rounded-xl">
+                        <h3 className="text-sm font-bold text-blue-800 mb-2 flex items-center gap-2">
+                            <Zap size={16} />
+                            Score Boosters
+                        </h3>
+                        <ul className="space-y-2">
+                            {data.creditScore.recommendations?.map((rec, i) => (
+                                <li key={i} className="text-sm text-blue-700 flex items-start gap-2">
+                                    <span className="mt-1.5 w-1 h-1 bg-blue-500 rounded-full"></span>
+                                    {rec}
+                                </li>
+                            ))}
+                            {(!data.creditScore.recommendations || data.creditScore.recommendations.length === 0) && (
+                                <li className="text-sm text-blue-700">Great job! Maintain your current habits.</li>
+                            )}
+                        </ul>
+                    </div>
+                 </div>
+             )}
           </div>
         )}
       </div>

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "../auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 
 export async function GET(req) {
@@ -47,7 +47,7 @@ export async function PUT(req) {
     try {
       const { id, name, type, purpose, balance } = await req.json();
       const updatedAccount = await prisma.account.update({
-        where: { id },
+        where: { id: parseInt(id) },
         data: {
           name,
           type,
@@ -70,7 +70,8 @@ export async function DELETE(req) {
     const id = searchParams.get('id');
   
     try {
-      await prisma.account.delete({ where: { id } });
+      if (!id) return NextResponse.json({ message: "ID required" }, { status: 400 });
+      await prisma.account.delete({ where: { id: parseInt(id) } });
       return NextResponse.json({ message: "Deleted" });
     } catch (error) {
       return NextResponse.json({ message: "Error deleting account" }, { status: 500 });

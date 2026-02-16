@@ -36,7 +36,7 @@ export default function SafeSpendCard({ amount, status }) {
   const Icon = style.icon;
 
   return (
-    <div className={`bg-linear-to-br ${style.bg} rounded-xl p-6 text-white shadow-lg relative overflow-hidden`}>
+    <div className={`bg-linear-to-br ${style.bg} rounded-3xl p-6 text-white shadow-xl shadow-slate-200/50 relative overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl`}>
       <div className="relative z-10">
           <div className="flex items-center gap-2 mb-2">
               <Icon size={20} className="opacity-80" />
