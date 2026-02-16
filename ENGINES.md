@@ -141,6 +141,17 @@ Transparent AI with plain-English explanations.
 
 ---
 
+### AuthEngine (`lib/authEngine.js`) - NEW
+
+Centralized authentication logic for Credentials and OAuth.
+
+| Function | Description |
+|----------|-------------|
+| `validateCredentials(email, password)` | Verify login and active status |
+| `handleGoogleLogin(user, account)` | Manage OAuth user creation/linking |
+
+---
+
 ## API Routes
 
 ### Dashboard API (`/api/dashboard`)

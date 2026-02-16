@@ -107,7 +107,7 @@ export default function Sidebar() {
         </div>
 
         {/* Navigation Items */}
-        <nav className="flex-1 px-4 py-8 space-y-8 overflow-y-scroll custom-scrollbar min-h-0 pb-32">
+        <nav className="flex-1 px-4 py-8 space-y-8 overflow-y-auto custom-scrollbar min-h-0 pb-6">
           {menuGroups.map((group, groupIdx) => (
             <div key={groupIdx}>
                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 px-3 font-heading">
