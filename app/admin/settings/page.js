@@ -13,8 +13,7 @@ export default function SettingsPage() {
      smtpUser: '',
      smtpPass: '',
      smtpSecure: false,
-     googleClientId: '',
-     googleClientSecret: '',
+
      databaseUrl: '',
      activeDatabaseUrl: '', // Read-only
      maintenanceMode: false,
@@ -34,7 +33,7 @@ export default function SettingsPage() {
         ...prev, 
         ...data, 
         smtpPass: '',       // Don't show password
-        googleClientSecret: '', // Don't show secret
+
         databaseUrl: ''      // Don't show raw global DB URL if masked
       })); 
     } catch (error) {
@@ -115,41 +114,7 @@ export default function SettingsPage() {
             </div>
          </div>
 
-         {/* Google OAuth Settings */}
-         <div className="glass-panel p-6 space-y-4">
-            <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-               <Globe size={20} className="text-red-500" />
-               Google Authentication
-            </h2>
-            <div className="p-4 bg-red-50 rounded-xl text-sm text-red-700 mb-4 flex gap-2">
-               <Key size={16} className="shrink-0 mt-0.5" />
-               These settings override the `.env` configuration. Used for "Sign in with Google".
-            </div>
 
-            <div className="grid grid-cols-1 gap-4">
-               <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Google Client ID</label>
-                  <input 
-                     type="text" 
-                     className="input-field" 
-                     placeholder="e.g., 123...apps.googleusercontent.com"
-                     value={formData.googleClientId}
-                     onChange={e => setFormData({...formData, googleClientId: e.target.value})}
-                  />
-               </div>
-               <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Google Client Secret</label>
-                  <input 
-                     type="password" 
-                     className="input-field" 
-                     placeholder="••••••••"
-                     value={formData.googleClientSecret}
-                     onChange={e => setFormData({...formData, googleClientSecret: e.target.value})}
-                  />
-                  <p className="text-xs text-slate-400 mt-1">Leave blank to keep existing secret.</p>
-               </div>
-            </div>
-         </div>
 
          {/* Database Connection */}
          <div className="glass-panel p-6 space-y-4">

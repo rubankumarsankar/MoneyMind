@@ -1,6 +1,5 @@
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import GoogleProvider from "next-auth/providers/google";
 
 import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
@@ -20,10 +19,6 @@ export const authOptions = {
     strategy: "jwt",
   },
   providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    }),
     CredentialsProvider({
       name: "Credentials",
       credentials: {
@@ -77,37 +72,6 @@ export const authOptions = {
   ],
   callbacks: {
     async signIn({ user, account, profile }) {
-      if (account.provider === "google") {
-        if (!profile?.email) {
-          throw new Error("No profile");
-        }
-
-        // Check if user exists
-        const existingUser = await prisma.user.findUnique({
-          where: { email: profile.email },
-        });
-
-        if (!existingUser) {
-          // Generate custom userId
-          const customUserId = await generateCustomUserId();
-          
-          // Create new user for Google Sign-in
-          await prisma.user.create({
-            data: {
-              userId: customUserId,
-              email: profile.email,
-              name: profile.name,
-              password: "",
-              isActive: true,
-            },
-          });
-        } else {
-          // Check if existing user is active
-          if (!existingUser.isActive) {
-            return false; // Blocks sign in
-          }
-        }
-      }
       return true;
     },
     async jwt({ token, user, trigger, session }) {

@@ -39,9 +39,7 @@ export async function GET(req) {
       smtpPass: settings?.smtpPass ? '********' : (process.env.SMTP_PASS ? '********' : ''),
       smtpSecure: settings?.smtpSecure ?? (process.env.SMTP_SECURE === 'true'),
 
-      // Google OAuth (Mask secret)
-      googleClientId: settings?.googleClientId || process.env.GOOGLE_CLIENT_ID || '',
-      googleClientSecret: settings?.googleClientSecret ? '********' : (process.env.GOOGLE_CLIENT_SECRET ? '********' : ''),
+
 
       // Database
       databaseUrl: settings?.databaseUrl ? '********' : (process.env.DATABASE_URL ? '********' : ''),
@@ -73,8 +71,7 @@ export async function POST(req) {
       smtpUser, 
       smtpPass,
       smtpSecure,
-      googleClientId,
-      googleClientSecret,
+
       databaseUrl
     } = body;
 
@@ -90,7 +87,7 @@ export async function POST(req) {
       smtpPort: parseInt(smtpPort),
       smtpUser,
       smtpSecure,
-      googleClientId,
+
     };
 
     // Only update sensitive values if allowed/provided
@@ -98,9 +95,7 @@ export async function POST(req) {
        updateData.smtpPass = smtpPass;
     }
     
-    if (googleClientSecret && googleClientSecret !== '********') {
-       updateData.googleClientSecret = googleClientSecret;
-    }
+
 
     if (databaseUrl && databaseUrl !== '********') {
        updateData.databaseUrl = databaseUrl;

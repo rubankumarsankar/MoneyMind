@@ -105,7 +105,7 @@ export default function SettingsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
+          <h1 className="text-2xl sm:text-3xl font-bold bg-clip-text text-transparent bg-linear-to-r from-blue-600 to-indigo-600">
             Settings
           </h1>
           <p className="text-slate-500 mt-1 text-sm sm:text-base">Manage your account and preferences</p>
@@ -149,7 +149,7 @@ export default function SettingsPage() {
             {/* Profile Header */}
             <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 pb-6 border-b border-slate-100">
               <div className="relative">
-                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-2xl sm:text-3xl font-bold shadow-xl">
+                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-2xl sm:text-3xl font-bold shadow-xl">
                   {session.user?.name?.charAt(0).toUpperCase() || 'U'}
                 </div>
                 <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
@@ -356,7 +356,7 @@ export default function SettingsPage() {
                   <CheckCircle2 size={24} className="text-green-600" />
                   <div>
                     <p className="font-semibold text-green-800 text-sm sm:text-base">Account Secured</p>
-                    <p className="text-xs text-green-600">Your account is protected with Google OAuth</p>
+                    <p className="text-xs text-green-600">Your account is active</p>
                   </div>
                 </div>
               </div>
